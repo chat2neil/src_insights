@@ -36,8 +36,41 @@ def load_index():
 def get_stored_procedures(index):
     query_engine = index.as_query_engine()
     response = query_engine.query("""
-    As a sql programmer, I want to know all the names of the stored procedures.
+    Look through the SQL code and find all the stored procedures.
+
+    Procedures are defined as a block of code that starts with the keywords "CREATE" and "PROCEDURE" ends with the keyword "GO".
+
+    The keywords are case insensitive.
+    
+    The procedure name is the first word or quoted string after the keyword "PROCEDURE".
+
     Example:
+    create procedure "Ten Most Expensive Products" AS
+    ...
+    GO
+    is a procedure named "Ten Most Expensive Products"
+
+    Example:
+    CREATE PROCEDURE "Employee Sales by Country" AS
+    ...
+    GO
+    is a procedure named "Employee Sales by Country"
+
+    Example:
+    CREATE PROCEDURE CustOrdersDetail @OrderID int
+    AS
+    ...
+    go
+    is a procedure named CustOrdersDetail
+
+    Example:
+    CREATE PROCEDURE CustOrdersOrders @CustomerID nchar(5)
+    AS
+    ...
+    GO
+    is a procedure named CustOrdersOrders
+
+    Please list the procedure names in a comma separated list.  Provide an empty string if no procedures are found.:
     procedure1, procedure2, procedure3
     """)
 
