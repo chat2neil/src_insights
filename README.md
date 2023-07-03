@@ -17,4 +17,4 @@ Note that you can add `--db nwnd` `--db pubs` when creating the index to between
 
 # Change History
 
-* 0.0.1 - can read pubs db and extract proc names, but doesn't extract associated tables correctly.  Seems to never finish with nwnd database; haven't investigated the cause yet.
+* 0.0.2 - can read pubs db and extract proc names, but doesn't extract associated tables correctly.  Seems to never finish with nwnd database; haven't investigated the cause yet.
