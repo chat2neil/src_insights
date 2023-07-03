@@ -1,6 +1,6 @@
 # Source Insights Demo App
 
-Uses AI frameworks such as llama-index and langchain to try and extract useful information from SQL code to speed up analysis and design.
+Uses AI frameworks such as (llama-index)[https://gpt-index.readthedocs.io/en/latest/guides/primer/usage_pattern.html] and (langchain)[https://python.langchain.com/] to try and extract useful information from SQL code to speed up analysis and design.
 
 # Getting started
 
@@ -14,3 +14,7 @@ Uses AI frameworks such as llama-index and langchain to try and extract useful i
 The index is created locally in JSON format under the ./index directory.
 
 Note that you can add `--db nwnd` `--db pubs` when creating the index to between input database code files.  The default is pubs.  The nwnd one takes a while to build.
+
+# Change History
+
+1. 0.0.1 - can read pubs db and extract proc names, but doesn't extract associated tables correctly.  Seems to never finish with nwnd database; haven't investigated the cause yet.
