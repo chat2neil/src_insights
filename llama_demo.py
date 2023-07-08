@@ -1,7 +1,8 @@
 # import os
 import argparse
 from dotenv import load_dotenv
-from llama_index import SimpleDirectoryReader, load_index_from_storage, StorageContext
+from llama_index import SimpleDirectoryReader, load_index_from_storage, StorageContext, ServiceContext
+from llama_index.llms import OpenAI
 from llama_index.node_parser import SimpleNodeParser
 from llama_index import VectorStoreIndex
 
@@ -12,7 +13,8 @@ load_dotenv()
 
 
 def create_index(db_name):
-    print("Creating index from source code")
+    print("Creating index")
+    
     documents = SimpleDirectoryReader(
         input_files=[f"source_code/sql_server/inst{db_name}.sql"]
     ).load_data()

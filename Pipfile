@@ -12,6 +12,7 @@ langchain = "*"
 unstructured = "*"
 chromadb = "*"
 huggingface-hub = "*"
+openai = "*"
 
 [dev-packages]
 

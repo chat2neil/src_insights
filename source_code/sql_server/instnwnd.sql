@@ -530,6 +530,7 @@ FROM Employees INNER JOIN
 WHERE Orders.ShippedDate Between @Beginning_Date And @Ending_Date
 GO
 
+
 create procedure "Sales by Year" 
 	@Beginning_Date DateTime, @Ending_Date DateTime AS
 SELECT Orders.ShippedDate, Orders.OrderID, "Order Subtotals".Subtotal, DATENAME(yy,ShippedDate) AS Year
