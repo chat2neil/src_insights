@@ -8,6 +8,10 @@ llama-index = "*"
 ipython = "==8.10.0"
 ipykernel = "*"
 python-dotenv = "*"
+langchain = "*"
+unstructured = "*"
+chromadb = "*"
+huggingface-hub = "*"
 
 [dev-packages]
 
