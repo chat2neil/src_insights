@@ -32,7 +32,9 @@ embeddings = OpenAIEmbeddings()
 docsearch = Chroma.from_documents(chunks, embeddings)
 
 # Pick an LLM model to use
-llm = OpenAI(temperature=0, verbose=True)
+# llm = OpenAI(model_name='text-davinci-003', max_tokens=800, temperature=0, verbose=True)
+# llm = OpenAI(model_name='gpt-3.5-turbo', max_tokens=3900, temperature=0, verbose=True)
+llm = OpenAI(model_name='gpt-3.5-turbo-16k', max_tokens=8000, temperature=0, verbose=True)
 # llm = OpenAI(model="ada", temperature=0, max_tokens=2049, verbose=True)
 # llm = OpenAI(model="text-davinci-003", temperature=0, verbose=True)
 # llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
@@ -48,11 +50,11 @@ def fetch_procs():
     Fetch a list of procedures from the SQL Server code.
     """
     query = """
-As a Microsoft SQL server programmer reading ANSI-SQL, list all the stored procedure names.  Note that procedure names can also have spaces within the name, as long as the name is in quotes.
-
-Output:
-procedure_name, procedure_name, procedure_name, ...
-"""
+    As a SQL programmer, list the stored procedure names; which can be one word, or multiple words in quotes or square brackets.
+    
+    Output format:
+    procedure_name, procedure_name, ...
+    """
     print("Query: ", query)
     ans = qa.run(query)
     print("Answer: ", ans)
@@ -64,8 +66,7 @@ procedure_name, procedure_name, procedure_name, ...
 procedures = fetch_procs()
 
 # Output: Not all procedures are found.  Different runs produce different results.
-# ['\n"Sales by Year"', ' "CustOrdersDetail"', ' "CustOrdersOrders"', ' "CustOrderHist"', ' "SalesByCategory"', ' "ByRoyalty"', ' "Reptq1"', ' "Reptq2"', ' "Reptq3"']
-# ['\n"Sales by Year"', ' "CustOrdersDetail"', ' "CustOrdersOrders"', ' "CustOrderHist"', ' "SalesByCategory"', ' "byroyalty"', ' "reptq1"', ' "reptq2"', ' "reptq3"', ' "Ten Most Expensive Products"', ' "Employee Sales by Country"']
+# ['"Sales by Year"', ' CustOrdersDetail', ' CustOrdersOrders', ' CustOrderHist', ' SalesByCategory', ' byroyalty', ' reptq1', ' reptq2', ' reptq3', ' "Ten Most Expensive Products"', ' "Employee Sales by Country"']
 print(procedures)
 
 
@@ -79,12 +80,12 @@ def fetch_tables_called_by_proc(procedure_name):
     prompt = PromptTemplate(
         input_variables=["procedure_name"],
         template="""
-            As a Microsoft SQL server programmer reading ANSI-SQL, list all the tables queried or updated by the stored procedure called {procedure_name}.
+            As a SQL programmer, list all the tables queried or updated by the stored procedure called {procedure_name}.
 
             Don't list table names unless they occur within the FROM or INTO clauses of a SELECT or UPDATE statement.
 
-            Output:
-            table_name, table_name, table_name, ...
+            Output format:
+            table_name, table_name, ...
         """,
     )
     query = prompt.format(procedure_name=procedure_name)
@@ -100,8 +101,26 @@ tables_by_procedure_struct = {}
 for proc in procedures:
     tables_by_procedure_struct[proc] = fetch_tables_called_by_proc(proc)
 
+
 # Output: This output is pretty useful, but not perfect.
-# Some tables listed are not called by the procedure.
+# The output format is inconsistent, but could be tidied up.
+# 
+# Output from gpt-3.5-turbo-16k: (all correct except reptq3)
+# {
+#   '"Sales by Year"': ['Orders', ' "Order Subtotals"'], 
+#   ' CustOrdersDetail': ['"Products"', ' "[Order Details]"'], 
+#   ' CustOrdersOrders': ['Orders'], 
+#   ' CustOrderHist': ['The tables queried by the stored procedure CustOrderHist are:\n- Products\n- [Order Details]\n- Orders\n- Customers'], 
+#   ' SalesByCategory': ['Categories', ' Products', ' Orders', ' [Order Details]'], 
+#   ' byroyalty': ['titleauthor'], 
+#   ' reptq1': ['The stored procedure "reptq1" queries the "titles" table.'], 
+#   ' reptq2': ['The stored procedure "reptq2" queries the "titles" table.'], 
+#   ' reptq3': ['titleauthor', ' titles'], 
+#   ' "Ten Most Expensive Products"': ['Products'], 
+#   ' "Employee Sales by Country"': ['Orders', ' "Order Subtotals"', ' Employees']
+# }
+# 
+# Output from text-davinci-003:
 # {
 #   '\n"Sales by Year"': [' Orders', ' "Order Subtotals"', ' "Order Details Extended"'],
 #   ' "CustOrdersDetail"': [' Products', ' Order Details'],
@@ -123,37 +142,10 @@ def fetch_all_tables():
     Fetch a list of all tables in the SQL Server code.
     """
     query = """
-As a Microsoft SQL Server syntax parser, find all the CREATE TABLE statements and list all the table names.
+As a SQL programmer, list the the table names, which can be one word, or multiple words in quotes or square brackets.
 
-Table names can be a single word, or several words that are surrounded by quotes or square brackets.
-
-Example:
-CREATE TABLE TableName
-Name: TableName
-
-Example:
-CREATE TABLE "Table Name"
-Name: "Table Name"
-
-Example:
-CREATE TABLE "TableName"
-Name: TableName
-
-Example:
-CREATE TABLE [dbo].[TableName]
-Name: TableName
-
-Example:
-CREATE TABLE [Table Name]
-Name: "Table Name"
-
-Example:
-CREATE TABLE [TableName]
-Name: TableName
-
-
-Output:
-"TableName", "TableName", "TableName", ...
+Output format:
+TableName, TableName, ...
 """
     print("Query: ", query)
     ans = qa.run(query)
@@ -167,6 +159,13 @@ tables = fetch_all_tables()
 # Output: Output is pretty good, but not perfect.
 # Lists views as well as tables.  When I tried to eliminate the views, the number
 # of legitimate tables was reduced.
+# 
+# Output from gpt-3.5-turbo-16k:
+# ['"dbo"."Order Details"', ' Customers', ' Suppliers', ' Products', ' Categories', ' Orders', 
+# ' "Product Sales for 1997"', ' titles', ' titleauthor', ' roysched', ' authors', ' publishers', 
+# ' employee', ' jobs', ' pub_info', ' sales', ' stores', ' discounts']
+# 
+# Output from text-davinci-003:
 # ['\nShippers', ' Suppliers', ' EmployeeTerritories', ' Territories', ' Region', ' Employees',
 # ' Categories', ' Customers', ' Alphabetical list of products', ' Current Product List',
 # ' Orders Qry', ' Products Above Average Price', ' Products by Category', ' Quarterly Orders']
@@ -182,34 +181,10 @@ def fetch_related_tables_for_table(table_name):
     prompt = PromptTemplate(
         input_variables=["table_name"],
         template="""
-            As a Microsoft SQL server programmer reading ANSI-SQL, list all the tables that have a foreign key foreign key constraint that references the {table_name} table.
+        As a SQL programmer, list all foreign key constraints that reference the {table_name} table.
 
-            Example:
-            CREATE TABLE RelatedTableName (
-
-            CONSTRAINT "FK_Name" FOREIGN KEY 
-            (
-                "{table_name}ID"
-            ) REFERENCES "dbo"."{table_name}" (
-                "{table_name}ID"
-            )
-            )
-            GO
-            table_name: RelatedTableName
-
-            Example:
-            ALTER TABLE RelatedTableName
-            ADD CONSTRAINT [FK_Name] FOREIGN KEY 
-            (
-                [{table_name}ID]
-            ) REFERENCES [dbo].[{table_name}] (
-                [{table_name}ID]
-            )
-            GO
-            table_name: RelatedTableName
-
-            Output:
-            table_name, table_name, table_name, ...
+        Output format:
+        table_name, table_name, ...
         """,
     )
     query = prompt.format(table_name=table_name)
@@ -220,6 +195,11 @@ def fetch_related_tables_for_table(table_name):
     return list
 
 
-# Output: Not very accurate at this stage.
-# ['\nEmployeeTerritories', ' Orders']
+# Outputs: ['EmployeeTerritories', ' Employees'], but doesn't find Orders
 print(fetch_related_tables_for_table("Employees"))
+
+# Outputs: ['Employees', ' Suppliers', ' Orders'], but should only be Products
+print(fetch_related_tables_for_table("Suppliers"))
+
+# Outputs: ['EmployeeTerritories', ' Territories'], but should only be Territories
+print(fetch_related_tables_for_table("Region"))
