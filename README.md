@@ -27,13 +27,14 @@ Key findings so far:
     * Variability not improved when "temperature" is set to zero.
     * Sometimes the results aren't formatted correctly either; although these issues could be easily fixed with standard coding techniques, or a second pass through with LLM.
     * The area that was least successful was in extracting all the tables and when trying to find relationships between them by searching for foreign key relationships.
-4. There are a handful of "levers" that you need to tune to get the best results:
-    * LLM Model and associated token limit - e.g. GPT3 vs 3.5 or 4.  Wasn't able to try GPT-4 yet.
-    * GPT Model "temperature" - set to 0 for less randomness in the response.
-    * Different styles of prompts sent to the LLM.
+4. You can tune the process to get better results:
+    * *LLM Model and token limit* - e.g. GPT3 vs 3.5 or 4.  Wasn't able to try GPT-4 yet.
+    * *Model "temperature"* - set to 0 for less randomness in the response.
+    * *Input prompts* - the questions sent to the LLM, e.g.
         * Few shot prompting
-        * Letting the LLM know "where" in vector space to look e.g. "As a SQL programmer..."
-    * Look into retrieval augmented generation (RAG) for better summarisation across the code base.
+        * Examples
+        * Being explicit about what the LLM should and shouldn't know e.g. "As a SQL programmer...", this effectively positions your query in the right area of the neural network to get the best results.
+    * *Retrieval Augmented Generation (RAG)* - Call the LLM multiple times, priming it with content to get better summarisation across the code base.
 
 What is Retrieval Augmented Generation (RAG):
 ![](images/Overview_retrieval_augmented_generation.png)
