@@ -15,11 +15,11 @@ Key findings so far:
 2. Blah
 
 What is Retrieval Augmented Generation (RAG):
-![](images/images/Overview_retrieval_augmented_generation.png)
+![](images/Overview_retrieval_augmented_generation.png)
 
 Key recommendations from Open AI about how to get the most of GPT models:
 
-![](images/images/images/AI_recommendations.png)
+![](images/AI_recommendations.png)
 
 # Useful references
 
