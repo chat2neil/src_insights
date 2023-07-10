@@ -27,16 +27,17 @@ Key findings so far:
     * Variability not improved when "temperature" is set to zero.
     * Sometimes the results aren't formatted correctly either; although these issues could be easily fixed with standard coding techniques, or a second pass through with LLM.
     * The area that was least successful was in extracting all the tables and when trying to find relationships between them by searching for foreign key relationships.
-4. You can tune the process to get better results:
+4. Expensive! - watch your usage, the cost can grow quickly.
+5. You can tune the process to get better results:
     * __LLM Model and token limit__ - e.g. GPT3 vs 3.5 or 4.  Wasn't able to try GPT-4 yet.
     * __Model "temperature"__ - set to 0 for less randomness in the response.
     * __Input prompts__ - the questions sent to the LLM, e.g.
-        * Few shot prompting
-        * Examples
+        * Few shot prompting, i.e. give examples of what you are expecting
         * Being explicit about what the LLM should and shouldn't know e.g. "As a SQL programmer...", this effectively positions your query in the right area of the neural network to get the best results.
+        * Asking for multiple completions `-n 3` and comparing or combining the results.
     * __Retrieval Augmented Generation (RAG)__ - Call the LLM multiple times, priming it with content to get better summarisation across the code base.
 
-### What is Retrieval Augmented Generation (RAG)
+### What is Retrieval Augmented Generation (RAG)?
 
 ![](images/Overview_retrieval_augmented_generation.png)
 
@@ -50,7 +51,8 @@ Credit: [Microsoft Build Presentation by Andrej Karpathy](https://www.youtube.co
 
 # Next steps
 
-* Will keep playing with this, for fun! (i.e. not work!)
+* Try again with GPT-4 when I get access!
+* Will keep playing with this, for fun! (not work!)
 * The business value and cost to implement isn't clear enough yet to recommend a project.
 * There are other relatively low cost alternatives for SQL code analysis that should also be considered alongside AI, such as [Informix SQL Parser](https://www.sqlparser.com/informix-sql-parser.php), as well as commercial database design and data governance tools.
 
