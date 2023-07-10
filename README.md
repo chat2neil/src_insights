@@ -6,27 +6,28 @@ The repo contains a bunch of generative AI demos; inspired by various tutorials 
 
 One of the main focus areas was to find out whether a GPT model could be used to read complex SQL code and
 create useful information about the code artefacts (procs, tables, fk relationships) and the dependencies 
-between them.  The intention was to see if AI can provide a simpler approach to more traditional methods 
-such as using SQL language parsers.
+between them.  The intention was to see if AI can provide a simpler approach than traditional language parsing methods.
 
-Note that GPT stands for Generative Pre-trained Transformer, that is a type of language model that uses a transformer architecture to generate coherent and contextually relevant text. It is a deep learning model that has been pre-trained on a vast amount of text data and can be fine-tuned for specific downstream natural language processing (NLP) tasks.
+GPT stands for Generative Pre-trained Transformer.  GPT is a type of language model that uses a transformer architecture to generate coherent and contextually relevant text. It is a deep learning model that has been pre-trained on a vast amount of text data and can be fine-tuned for specific downstream natural language processing (NLP) tasks.
 
 The demos make use of a few different API's and frameworks:
 
-1. [Open AI SDK](https://platform.openai.com/docs/libraries) - simple SDK, easy to learn
-2. [langchain](https://python.langchain.com/) - Popular framework that provides abstractions over the top of a broad range of AI technologies.  Still not to hard to learn, good documentation.
-3. [llama-index](https://gpt-index.readthedocs.io/en/latest/guides/primer/usage_pattern.html) - Another popular framework that really shines when implementing Retrieval Augmented Generation (RAG) style programs.  Supports a range of different content search indices to fit different analysis use cases, such a content summarisation, answering specific questions etc.
+1. [Open AI SDK](https://platform.openai.com/docs/libraries) - Very easy to learn
+2. [langchain](https://python.langchain.com/) - Popular framework that provides abstractions over the top of a broad range of AI technologies.  Relatively easy to learn with good documentation.
+3. [llama-index](https://gpt-index.readthedocs.io/en/latest/guides/primer/usage_pattern.html) - Another popular framework that really shines when implementing Retrieval Augmented Generation (RAG) style programs.  Supports a range of different content search indices to fit different analysis use cases, such a content summarisation, answering specific questions etc.  A bit harder to learn, mainly because the documentation is harder to consume.
 
 # Findings
 
 Key findings so far:
 
-1. You can successfully extract information about key source code elements with quite simple python programs and some well crafted prompts.  Significantly less complexity than language parsing.
-2. The time taken to build this was a few hours; most of the time was spent learning about AI ;-)
-3. Not getting ALL the artefacts and sometimes see differences in what is returned from one run to the next, even when "temperature" is set to zero.
-4. Sometimes the results aren't formatted correctly either; although these issues could be easily fixed with standard coding techniques, or a second pass through with LLM.
-5. The area that was least successful was in extracting all the tables and when trying to find relationships between them by searching for foreign key relationships.
-6. There are a handful of "levers" that you need to tune to get the best results:
+1. You can successfully extract information about key source code with quite simple python programs.  Significantly less complex than language parsing.
+2. Short time to implement.  Most of the time was spent learning about AI ;-)
+3. Inconsistent results:
+    * Not finding ALL source code elements and sometimes see differences between program executions.
+    * Variability not improved when "temperature" is set to zero.
+    * Sometimes the results aren't formatted correctly either; although these issues could be easily fixed with standard coding techniques, or a second pass through with LLM.
+    * The area that was least successful was in extracting all the tables and when trying to find relationships between them by searching for foreign key relationships.
+4. There are a handful of "levers" that you need to tune to get the best results:
     * LLM Model and associated token limit - e.g. GPT3 vs 3.5 or 4.  Wasn't able to try GPT-4 yet.
     * GPT Model "temperature" - set to 0 for less randomness in the response.
     * Different styles of prompts sent to the LLM.
