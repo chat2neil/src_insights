@@ -27,7 +27,7 @@ Key findings so far:
     * Variability not improved when "temperature" is set to zero.
     * Sometimes the results aren't formatted correctly either; although these issues could be easily fixed with standard coding techniques, or a second pass through with LLM.
     * The area that was least successful was in extracting all the tables and when trying to find relationships between them by searching for foreign key relationships.
-4. Expensive! - watch your usage, the cost can grow quickly.
+4. Watch your usage costs.  Trick for beginners, [GPT-3.5-turbo is actually cheaper](https://openai.com/pricing#language-models) than the default text-davinci-003 model.
 5. You can tune the process to get better results:
     * __LLM Model and token limit__ - e.g. GPT3 vs 3.5 or 4.  Wasn't able to try GPT-4 yet.
     * __Model "temperature"__ - set to 0 for less randomness in the response.
