@@ -29,19 +29,20 @@ Key findings so far:
     * The area that was least successful was in extracting all the tables and when trying to find relationships between them by searching for foreign key relationships.
 4. You can tune the process to get better results:
     * __LLM Model and token limit__ - e.g. GPT3 vs 3.5 or 4.  Wasn't able to try GPT-4 yet.
-    * *Model "temperature"* - set to 0 for less randomness in the response.
-    * *Input prompts* - the questions sent to the LLM, e.g.
+    * __Model "temperature"__ - set to 0 for less randomness in the response.
+    * __Input prompts__ - the questions sent to the LLM, e.g.
         * Few shot prompting
         * Examples
         * Being explicit about what the LLM should and shouldn't know e.g. "As a SQL programmer...", this effectively positions your query in the right area of the neural network to get the best results.
-    * *Retrieval Augmented Generation (RAG)* - Call the LLM multiple times, priming it with content to get better summarisation across the code base.
+    * __Retrieval Augmented Generation (RAG)__ - Call the LLM multiple times, priming it with content to get better summarisation across the code base.
 
-What is Retrieval Augmented Generation (RAG):
+### What is Retrieval Augmented Generation (RAG)
+
 ![](images/Overview_retrieval_augmented_generation.png)
 
 Credit: [AWS Sagemaker documentation](https://docs.aws.amazon.com/sagemaker/latest/dg/jumpstart-foundation-models-customize-rag.html)
 
-Key recommendations from Open AI about how to get the most out of GPT:
+### Key recommendations from Open AI about how to get the most out of GPT
 
 ![](images/AI_recommendations.png)
 
