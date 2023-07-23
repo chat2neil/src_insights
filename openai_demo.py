@@ -1,5 +1,4 @@
-import webbrowser
-from openai import Model, Completion, Image
+from openai import ChatCompletion
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -15,7 +14,8 @@ completion = Completion.create(
     temperature=0.5,
     echo=True,
 )
-print(completion.choices[0].text)
+print(completion)
+print(completion.choices[0].message.content)
 
 # Image generation
 # images = Image.create(

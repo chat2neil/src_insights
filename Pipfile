@@ -13,6 +13,8 @@ unstructured = "*"
 chromadb = "*"
 huggingface-hub = "*"
 openai = "*"
+tiktoken = "*"
+numpy = "*"
 
 [dev-packages]
 
