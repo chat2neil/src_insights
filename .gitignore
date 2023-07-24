@@ -7,6 +7,7 @@ __pycache__
 
 # Indexes and database files
 /index
+/results
 .chroma
 /out
 /results

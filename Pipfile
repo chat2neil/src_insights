@@ -15,6 +15,7 @@ huggingface-hub = "*"
 openai = "*"
 tiktoken = "*"
 numpy = "*"
+pandas = "*"
 
 [dev-packages]
 
