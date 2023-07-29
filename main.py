@@ -1,8 +1,6 @@
 from dotenv import load_dotenv
 import argparse
 import pandas as pd
-import re
-import json
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from jinja2 import Template
@@ -15,7 +13,7 @@ def list_procedure_names(source_insights_dataframe):
     """
     Find all the procedure names in the source insights data frame.
     """
-    procedures = source_insights_dataframe[source_insights_dataframe['dml_operation'] == 'CREATE PROCEDURE']
+    procedures = source_insights_dataframe[source_insights_dataframe['ddl_operation'] == 'CREATE PROCEDURE']
     return procedures['db_object_name'].to_list()
 
 
@@ -23,118 +21,30 @@ def list_table_names(source_insights_dataframe):
     """
     Find all the table names in the source insights data frame.
     """
-    tables = source_insights_dataframe[source_insights_dataframe['dml_operation'] == 'CREATE TABLE']
+    tables = source_insights_dataframe[source_insights_dataframe['ddl_operation'] == 'CREATE TABLE']
     return tables['db_object_name'].to_list()
 
-
-def extract_procedure_declaration_from_code(procedure_name, sql_code):
-    """
-    Extract the procedure declaration from the SQL code.
-    
-    Uses a regular expression to fetch the code between the CREATE PROCEDURE 
-    statement and the GO statement.
-    """
-    regex_pattern = r'(CREATE PROCEDURE +?"?%s"?.+?(\nGO|$))' % procedure_name
-    match = re.search(regex_pattern, sql_code, re.DOTALL | re.IGNORECASE)
-    if match:
-        procedure_code = match.group(1)
-    else:
-        procedure_code = None
-    return procedure_code
-
-
-def find_tables_manipulated_by_procedure(procedure_name, sql_code):
-    """
-    Find all the database tables that are manipulated by the procedure.
-
-    Returns a list of dictionaries containing the name of the table and the 
-    DML statement type (i.e. SELECT, INSERT, UPDATE, or DELETE).
-
-    Example:
-    [
-        { "table_name": "Order Details", "dml_operation": "SELECT"},
-        { "table_name": "Order Details", "dml_operation": "INSERT"},
-        { "table_name": "Order Details", "dml_operation": "UPDATE"},
-        { "table_name": "Order Details", "dml_operation": "DELETE"},
-    ]
-    """
-    chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
-    system_message_prompt = SystemMessagePromptTemplate.from_template("""
-        Your are a SQL code parser.
-
-        Find all the database tables that are manipulated by the {procedure_name} stored procedure.
-        Find all the tables that are queried, inserted into, updated or deleted from and extract the 
-        table name and database operation type (i.e. SELECT, INSERT, UPDATE, or DELETE).
-
-        ## OUTPUT FORMAT ##
-        json object array, containing the name of the table and the DML statement type in UPPERCASE text.
-        Example:
-        [{{ "table_name": "Order Details", "dml_operation": "SELECT"}}]
-
-        If there are no items, then return an empty json array.
-    """)
-    example1_prompt = HumanMessagePromptTemplate.from_template("""
-    CREATE PROCEDURE CustOrdersDetail @OrderID int
-    AS
-    SELECT ProductName,
-        UnitPrice=ROUND(Od.UnitPrice, 2),
-        Quantity,
-        Discount=CONVERT(int, Discount * 100), 
-        ExtendedPrice=ROUND(CONVERT(money, Quantity * (1 - Discount) * Od.UnitPrice), 2)
-    FROM Products P, [Order Details] Od
-    WHERE Od.ProductID = P.ProductID and Od.OrderID = @OrderID
-    go
-    """)
-    example1_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Products", "dml_operation": "SELECT"}}, {{ "table_name": "Order Details", "dml_operation": "SELECT"}}]')
-
-    example2_prompt = HumanMessagePromptTemplate.from_template("""
-    CREATE PROCEDURE CustOrdersOrders @CustomerID nchar(5)
-    AS
-    SELECT OrderID, 
-        OrderDate,
-        RequiredDate,
-        ShippedDate
-    FROM Orders
-    WHERE CustomerID = @CustomerID
-    ORDER BY OrderID
-    GO
-    """)
-    example2_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Orders", "dml_operation": "SELECT"}}]')
-
-    final_prompt = HumanMessagePromptTemplate.from_template("{sql_code_fragment}")
-
-    chat_prompt = ChatPromptTemplate.from_messages([
-        system_message_prompt, 
-        example1_prompt, example1_response,
-        example2_prompt, example2_response,
-        final_prompt
-    ])
-
-    # get a chat completion from the formatted messages
-    llm_response = chat(chat_prompt.format_prompt(procedure_name=procedure_name, sql_code_fragment=sql_code).to_messages())
-    result = json.loads(llm_response.content)
-    return result
 
 
 def group_tables_by_dml_operation(array_of_table_names_and_dml_operations):
     """
-    Given an array of dictionaries, group the dictionaries by the dml_operation key
-    and return a dictionary with the dml_operation as the key and the table_name as the value.
+    Given an array of dictionaries, group the dictionaries by the ddl_operation key
+    and return a dictionary with the ddl_operation as the key and the table_name as the value.
 
     Example:
-    Input: [{'table_name': 'Orders', 'dml_operation': 'SELECT'}, {'table_name': 'Order Subtotals', 'dml_operation': 'SELECT'}]
+    Input: [{'table_name': 'Orders', 'ddl_operation': 'SELECT'}, {'table_name': 'Order Subtotals', 'ddl_operation': 'SELECT'}]
     Output: {'SELECT': 'Orders, Order Subtotals'}
     """
     dict_by_operation = {}
 
     # Iterate over the array
     for item in array_of_table_names_and_dml_operations:
-        # If the dml_operation is not in the dictionary, add it with the table_name as the value
-        if item['dml_operation'] not in dict_by_operation:
-            dict_by_operation[item['dml_operation']] = item['table_name']
-        # If the dml_operation is already in the dictionary, append the table_name to the existing value
+        # If the ddl_operation is not in the dictionary, add it with the table_name as the value
+        if item['ddl_operation'] not in dict_by_operation:
+            dict_by_operation[item['ddl_operation']] = item['table_name']
+        # If the ddl_operation is already in the dictionary, append the table_name to the existing value
         else:
-            dict_by_operation[item['dml_operation']] += ', ' + item['table_name']
+            dict_by_operation[item['ddl_operation']] += ', ' + item['table_name']
     return dict_by_operation
 
 
@@ -298,26 +208,32 @@ parser.add_argument('--parse-code',
 args = parser.parse_args()
 
 if args.debug:
+    print("Running in debug mode")
     chunk_limit = 3
 else:
     chunk_limit = 0
 
 if args.parse_code:
+    print("Parsing SQL code")
+
     sql_parser = SqlCodeParser(
         source_directory="source_code/sql_server", 
         source_file_glob_pattern="**/*.sql",
         chunk_limit=chunk_limit,
         verbose=True)
-    db_objects_and_dml_operations_df = sql_parser.parse_code()
-    db_objects_and_dml_operations_df.to_csv('./results/db_objects_and_dml_operations_df.csv', index=False)
+    df = sql_parser.find_ddl_statements()
+    df.to_csv('./results/parsed_code.csv', index=False)
 else:
-    db_objects_and_dml_operations_df = pd.read_csv('./results/db_objects_and_dml_operations_df.csv')
+    print("Using parsed results from previous run")
 
-procedure_names = list_procedure_names(db_objects_and_dml_operations_df)
+    df = pd.read_csv('./results/parsed_code.csv')
+
+
+procedure_names = list_procedure_names(df)
 print("Found procedures:")
 print(procedure_names)
 
-table_names = list_table_names(db_objects_and_dml_operations_df)
+table_names = list_table_names(df)
 print("Found tables:")
 print(table_names)
 

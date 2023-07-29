@@ -9,6 +9,8 @@ from langchain.prompts.chat import (
 )
 import pandas as pd
 import json
+import re
+import json
 
 class SqlCodeParser:
     """
@@ -25,7 +27,7 @@ class SqlCodeParser:
         self.verbose = verbose
 
 
-    def _find_db_objects_in_code(self, sql_code):
+    def _parse_code_for_ddl_statements(self, sql_code):
         """
         Find all the Data Definition Language (DDL) statements in the SQL CODE fragment
         provided and extract the statement type and the name of the database object 
@@ -35,7 +37,7 @@ class SqlCodeParser:
         An array, containing the name of the database object and the DDL statement type in UPPERCASE text.
         
         Example:
-        [{"db_object_name": "EmployeeID", "dml_operation": "CREATE INDEX"}]
+        [{"db_object_name": "EmployeeID", "ddl_operation": "CREATE INDEX"}]
         """
 
         chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
@@ -47,32 +49,32 @@ class SqlCodeParser:
             ## OUTPUT FORMAT ##
             json object array, containing the name of the database object and the DDL statement type in UPPERCASE text.
             Example:
-            [{{ "db_object_name": "EmployeeID", "dml_operation": "CREATE INDEX"}}]
+            [{{ "db_object_name": "EmployeeID", "ddl_operation": "CREATE INDEX"}}]
 
             If there are no items, then return an empty json array.
         """)
         example1_prompt = HumanMessagePromptTemplate.from_template('CREATE TABLE "Products"')
-        example1_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Products", "dml_operation": "CREATE TABLE"}}]')
+        example1_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Products", "ddl_operation": "CREATE TABLE"}}]')
 
         example2_prompt = HumanMessagePromptTemplate.from_template('CONSTRAINT "FK_Products_Categories" FOREIGN KEY')
-        example2_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "FK_Products_Categories", "dml_operation": "CREATE CONSTRAINT"}}]')
+        example2_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "FK_Products_Categories", "ddl_operation": "CREATE CONSTRAINT"}}]')
 
         example3_prompt = HumanMessagePromptTemplate.from_template('create procedure "Sales by Year"')
-        example3_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Sales by Year", "dml_operation": "CREATE PROCEDURE"}}]')
+        example3_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Sales by Year", "ddl_operation": "CREATE PROCEDURE"}}]')
 
         example4_prompt = HumanMessagePromptTemplate.from_template("""
         if exists (select * from sysobjects where id = object_id('dbo.Employee Sales by Country') and sysstat & 0xf = 4)
             drop procedure "dbo"."Employee Sales by Country"
         GO
         """)
-        example4_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Employee Sales by Country", "dml_operation": "DROP PROCEDURE"}}]')
+        example4_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Employee Sales by Country", "ddl_operation": "DROP PROCEDURE"}}]')
 
         example5_prompt = HumanMessagePromptTemplate.from_template("""
         if exists (select * from sysobjects where id = object_id('dbo.Category Sales for 1997') and sysstat & 0xf = 2)
             drop view "dbo"."Category Sales for 1997"
         GO
         """)
-        example5_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Category Sales for 1997", "dml_operation": "DROP VIEW"}}]')
+        example5_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Category Sales for 1997", "ddl_operation": "DROP VIEW"}}]')
 
         final_prompt = HumanMessagePromptTemplate.from_template("""
         ## CODE ##
@@ -96,17 +98,17 @@ class SqlCodeParser:
         return result
 
 
-    def parse_code(self):
+    def find_ddl_statements(self):
         """
         Reads the SQL code from the files in the source directory and parse the code to 
         extract the Data Definition Language (DDL) statements.
 
         The output is a dataframe with the following columns:
         - db_object_name: The name of the database object being created, altered or dropped.
-        - dml_operation: The type of DDL statement.
+        - ddl_operation: The type of DDL statement.
         - sql_code: The SQL code that was parsed.
 
-        The dml_operation can be one of the following:
+        The ddl_operation can be one of the following:
         - CREATE TABLE
         - CREATE INDEX
         - CREATE PROCEDURE
@@ -137,15 +139,106 @@ class SqlCodeParser:
         chunks = splitter.split_documents(documents)
         sample_chunks = chunks[0: self.chunk_limit] if self.chunk_limit > 0 else chunks
 
-        ddl_statements_dataframe = pd.DataFrame(columns=['db_object_name', 'dml_operation', 'sql_code'])
+        ddl_statements_dataframe = pd.DataFrame(columns=['db_object_name', 'ddl_operation', 'sql_code'])
         for chunk in sample_chunks:
             content = chunk.page_content
-            database_objects = self._find_db_objects_in_code(content)
+            database_objects = self._parse_code_for_ddl_statements(content)
             temp_df = pd.DataFrame(database_objects)
             temp_df['sql_code'] = content
             ddl_statements_dataframe = pd.concat([ddl_statements_dataframe, temp_df], ignore_index=True)
 
         return ddl_statements_dataframe
+
+
+    def _extract_procedure_declaration_from_code(self, procedure_name, sql_code):
+        """
+        Extract the procedure declaration from the SQL code.
+        
+        Uses a regular expression to fetch the code between the CREATE PROCEDURE 
+        statement and the GO statement.
+        """
+        regex_pattern = r'(CREATE PROCEDURE +?"?%s"?.+?(\nGO|$))' % procedure_name
+        # regex_pattern = r'(CREATE PROCEDURE +?"?%s"?[^GO]+?(\nGO|$))' % procedure_name
+        match = re.search(regex_pattern, sql_code, re.DOTALL | re.IGNORECASE)
+        # match = re.search(regex_pattern, sql_code, re.IGNORECASE)
+        if match:
+            procedure_code = match.group(1)
+        else:
+            procedure_code = None
+        return procedure_code
+
+
+    def find_tables_manipulated_by_procedure(self, procedure_name, sql_code):
+        """
+        Find all the database tables that are manipulated by the procedure.
+
+        Returns a list of dictionaries containing the name of the table and the 
+        DML statement type (i.e. SELECT, INSERT, UPDATE, or DELETE).
+
+        Example:
+        [
+            { "table_name": "Order Details", "ddl_operation": "SELECT"},
+            { "table_name": "Order Details", "ddl_operation": "INSERT"},
+            { "table_name": "Order Details", "ddl_operation": "UPDATE"},
+            { "table_name": "Order Details", "ddl_operation": "DELETE"},
+        ]
+        """
+        chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
+        system_message_prompt = SystemMessagePromptTemplate.from_template("""
+            Your are a SQL code parser.
+
+            Find all the database tables that are manipulated by the {procedure_name} stored procedure.
+            Find all the tables that are queried, inserted into, updated or deleted from and extract the 
+            table name and database operation type (i.e. SELECT, INSERT, UPDATE, or DELETE).
+
+            ## OUTPUT FORMAT ##
+            json object array, containing the name of the table and the DML statement type in UPPERCASE text.
+            Example:
+            [{{ "table_name": "Order Details", "ddl_operation": "SELECT"}}]
+
+            If there are no items, then return an empty json array.
+        """)
+        example1_prompt = HumanMessagePromptTemplate.from_template("""
+        CREATE PROCEDURE CustOrdersDetail @OrderID int
+        AS
+        SELECT ProductName,
+            UnitPrice=ROUND(Od.UnitPrice, 2),
+            Quantity,
+            Discount=CONVERT(int, Discount * 100), 
+            ExtendedPrice=ROUND(CONVERT(money, Quantity * (1 - Discount) * Od.UnitPrice), 2)
+        FROM Products P, [Order Details] Od
+        WHERE Od.ProductID = P.ProductID and Od.OrderID = @OrderID
+        go
+        """)
+        example1_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Products", "ddl_operation": "SELECT"}}, {{ "table_name": "Order Details", "ddl_operation": "SELECT"}}]')
+
+        example2_prompt = HumanMessagePromptTemplate.from_template("""
+        CREATE PROCEDURE CustOrdersOrders @CustomerID nchar(5)
+        AS
+        SELECT OrderID, 
+            OrderDate,
+            RequiredDate,
+            ShippedDate
+        FROM Orders
+        WHERE CustomerID = @CustomerID
+        ORDER BY OrderID
+        GO
+        """)
+        example2_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Orders", "ddl_operation": "SELECT"}}]')
+
+        final_prompt = HumanMessagePromptTemplate.from_template("{sql_code_fragment}")
+
+        chat_prompt = ChatPromptTemplate.from_messages([
+            system_message_prompt, 
+            example1_prompt, example1_response,
+            example2_prompt, example2_response,
+            final_prompt
+        ])
+
+        # get a chat completion from the formatted messages
+        llm_response = chat(chat_prompt.format_prompt(procedure_name=procedure_name, sql_code_fragment=sql_code).to_messages())
+        result = json.loads(llm_response.content)
+        return result
 
 
 if __name__ == '__main__':
@@ -154,7 +247,7 @@ if __name__ == '__main__':
         source_file_glob_pattern="**/*.sql",
         chunk_limit=3,
         verbose=True)
-    df = sql_parser.parse_code()
+    df = sql_parser.find_ddl_statements()
     df.to_csv('./results/sql_code_parser_results.csv', index=False)
     print(df)
     print("Done!")
