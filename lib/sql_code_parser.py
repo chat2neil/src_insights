@@ -37,7 +37,7 @@ class SqlCodeParser:
         An array, containing the name of the database object and the DDL statement type in UPPERCASE text.
         
         Example:
-        [{"db_object_name": "EmployeeID", "ddl_operation": "CREATE INDEX"}]
+        [{"db_object_name": "EmployeeID", "sql_operation": "CREATE INDEX"}]
         """
 
         chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
@@ -49,32 +49,32 @@ class SqlCodeParser:
             ## OUTPUT FORMAT ##
             json object array, containing the name of the database object and the DDL statement type in UPPERCASE text.
             Example:
-            [{{ "db_object_name": "EmployeeID", "ddl_operation": "CREATE INDEX"}}]
+            [{{ "db_object_name": "EmployeeID", "sql_operation": "CREATE INDEX"}}]
 
             If there are no items, then return an empty json array.
         """)
         example1_prompt = HumanMessagePromptTemplate.from_template('CREATE TABLE "Products"')
-        example1_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Products", "ddl_operation": "CREATE TABLE"}}]')
+        example1_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Products", "sql_operation": "CREATE TABLE"}}]')
 
         example2_prompt = HumanMessagePromptTemplate.from_template('CONSTRAINT "FK_Products_Categories" FOREIGN KEY')
-        example2_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "FK_Products_Categories", "ddl_operation": "CREATE CONSTRAINT"}}]')
+        example2_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "FK_Products_Categories", "sql_operation": "CREATE CONSTRAINT"}}]')
 
         example3_prompt = HumanMessagePromptTemplate.from_template('create procedure "Sales by Year"')
-        example3_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Sales by Year", "ddl_operation": "CREATE PROCEDURE"}}]')
+        example3_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Sales by Year", "sql_operation": "CREATE PROCEDURE"}}]')
 
         example4_prompt = HumanMessagePromptTemplate.from_template("""
         if exists (select * from sysobjects where id = object_id('dbo.Employee Sales by Country') and sysstat & 0xf = 4)
             drop procedure "dbo"."Employee Sales by Country"
         GO
         """)
-        example4_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Employee Sales by Country", "ddl_operation": "DROP PROCEDURE"}}]')
+        example4_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Employee Sales by Country", "sql_operation": "DROP PROCEDURE"}}]')
 
         example5_prompt = HumanMessagePromptTemplate.from_template("""
         if exists (select * from sysobjects where id = object_id('dbo.Category Sales for 1997') and sysstat & 0xf = 2)
             drop view "dbo"."Category Sales for 1997"
         GO
         """)
-        example5_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Category Sales for 1997", "ddl_operation": "DROP VIEW"}}]')
+        example5_response = AIMessagePromptTemplate.from_template('[{{ "db_object_name": "Category Sales for 1997", "sql_operation": "DROP VIEW"}}]')
 
         final_prompt = HumanMessagePromptTemplate.from_template("""
         ## CODE ##
@@ -105,10 +105,10 @@ class SqlCodeParser:
 
         The output is a dataframe with the following columns:
         - db_object_name: The name of the database object being created, altered or dropped.
-        - ddl_operation: The type of DDL statement.
+        - sql_operation: The type of DDL statement.
         - sql_code: The SQL code that was parsed.
 
-        The ddl_operation can be one of the following:
+        The sql_operation can be one of the following:
         - CREATE TABLE
         - CREATE INDEX
         - CREATE PROCEDURE
@@ -139,7 +139,7 @@ class SqlCodeParser:
         chunks = splitter.split_documents(documents)
         sample_chunks = chunks[0: self.chunk_limit] if self.chunk_limit > 0 else chunks
 
-        ddl_statements_dataframe = pd.DataFrame(columns=['db_object_name', 'ddl_operation', 'sql_code'])
+        ddl_statements_dataframe = pd.DataFrame(columns=['db_object_name', 'sql_operation', 'sql_code'])
         for chunk in sample_chunks:
             content = chunk.page_content
             database_objects = self._parse_code_for_ddl_statements(content)
@@ -177,10 +177,10 @@ class SqlCodeParser:
 
         Example:
         [
-            { "table_name": "Order Details", "ddl_operation": "SELECT"},
-            { "table_name": "Order Details", "ddl_operation": "INSERT"},
-            { "table_name": "Order Details", "ddl_operation": "UPDATE"},
-            { "table_name": "Order Details", "ddl_operation": "DELETE"},
+            { "table_name": "Order Details", "sql_operation": "SELECT"},
+            { "table_name": "Order Details", "sql_operation": "INSERT"},
+            { "table_name": "Order Details", "sql_operation": "UPDATE"},
+            { "table_name": "Order Details", "sql_operation": "DELETE"},
         ]
         """
         chat = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, verbose=True)
@@ -194,7 +194,7 @@ class SqlCodeParser:
             ## OUTPUT FORMAT ##
             json object array, containing the name of the table and the DML statement type in UPPERCASE text.
             Example:
-            [{{ "table_name": "Order Details", "ddl_operation": "SELECT"}}]
+            [{{ "table_name": "Order Details", "sql_operation": "SELECT"}}]
 
             If there are no items, then return an empty json array.
         """)
@@ -210,7 +210,7 @@ class SqlCodeParser:
         WHERE Od.ProductID = P.ProductID and Od.OrderID = @OrderID
         go
         """)
-        example1_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Products", "ddl_operation": "SELECT"}}, {{ "table_name": "Order Details", "ddl_operation": "SELECT"}}]')
+        example1_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Products", "sql_operation": "SELECT"}}, {{ "table_name": "Order Details", "sql_operation": "SELECT"}}]')
 
         example2_prompt = HumanMessagePromptTemplate.from_template("""
         CREATE PROCEDURE CustOrdersOrders @CustomerID nchar(5)
@@ -224,7 +224,7 @@ class SqlCodeParser:
         ORDER BY OrderID
         GO
         """)
-        example2_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Orders", "ddl_operation": "SELECT"}}]')
+        example2_response = AIMessagePromptTemplate.from_template('[{{ "table_name": "Orders", "sql_operation": "SELECT"}}]')
 
         final_prompt = HumanMessagePromptTemplate.from_template("{sql_code_fragment}")
 
@@ -240,14 +240,3 @@ class SqlCodeParser:
         result = json.loads(llm_response.content)
         return result
 
-
-if __name__ == '__main__':
-    sql_parser = SqlCodeParser(
-        source_directory="source_code/sql_server", 
-        source_file_glob_pattern="**/*.sql",
-        chunk_limit=3,
-        verbose=True)
-    df = sql_parser.find_ddl_statements()
-    df.to_csv('./results/sql_code_parser_results.csv', index=False)
-    print(df)
-    print("Done!")

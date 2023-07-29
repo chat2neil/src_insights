@@ -19,13 +19,13 @@ def sql_code_parser():
     # Teardown logic
 
 
-def test_sql_code_parser(sql_code_parser):
+def test_find_ddl_statements(sql_code_parser):
     df = sql_code_parser.find_ddl_statements()
-    assert df.columns.tolist() == ["db_object_name", "ddl_operation", "sql_code"]
+    assert df.columns.tolist() == ["db_object_name", "sql_operation", "sql_code"]
     assert len(df) >= 2
 
 
-def test_extracting_procedure_from_code(sql_code_parser):
+def test_extract_procedure_declaration_from_code(sql_code_parser):
     code = """
 
 GO
@@ -111,3 +111,29 @@ ORDER BY ProductName
     assert "ORDER BY ProductName" in segment, "The last part of the stored procedure was found"
     assert len(re.findall(r'^GO$', segment, re.MULTILINE | re.IGNORECASE)) == 0, "There should be no GO statement in the extracted segment, for this example"
 
+
+def test_find_tables_manipulated_by_procedure(sql_code_parser):
+    procedure_name = 'SalesByCategory'
+    code = """
+CREATE PROCEDURE SalesByCategory
+    @CategoryName nvarchar(15), @OrdYear nvarchar(4) = '1998'
+AS
+IF @OrdYear != '1996' AND @OrdYear != '1997' AND @OrdYear != '1998' 
+BEGIN
+    SELECT @OrdYear = '1998'
+END
+
+SELECT ProductName,
+    TotalPurchase=ROUND(SUM(CONVERT(decimal(14,2), OD.Quantity * (1-OD.Discount) * OD.UnitPrice)), 0)
+FROM [Order Details] OD, Orders O, Products P, Categories C
+WHERE OD.OrderID = O.OrderID 
+    AND OD.ProductID = P.ProductID 
+    AND P.CategoryID = C.CategoryID
+    AND C.CategoryName = @CategoryName
+    AND SUBSTRING(CONVERT(nvarchar(22), O.OrderDate, 111), 1, 4) = @OrdYear
+GROUP BY ProductName
+ORDER BY ProductName
+
+"""
+    tables = sql_code_parser.find_tables_manipulated_by_procedure(procedure_name, code)
+    assert tables == [{'table_name': 'Order Details', 'sql_operation': 'SELECT'}, {'table_name': 'Orders', 'sql_operation': 'SELECT'}, {'table_name': 'Products', 'sql_operation': 'SELECT'}, {'table_name': 'Categories', 'sql_operation': 'SELECT'}]

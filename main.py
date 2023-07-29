@@ -9,42 +9,43 @@ from lib.sql_code_parser import SqlCodeParser
 
 load_dotenv()
 
-def list_procedure_names(source_insights_dataframe):
+
+def list_procedure_names(df):
     """
     Find all the procedure names in the source insights data frame.
     """
-    procedures = source_insights_dataframe[source_insights_dataframe['ddl_operation'] == 'CREATE PROCEDURE']
+    procedures = df[df['sql_operation'] == 'CREATE PROCEDURE']
     return procedures['db_object_name'].to_list()
 
 
-def list_table_names(source_insights_dataframe):
+def list_table_names(df):
     """
     Find all the table names in the source insights data frame.
     """
-    tables = source_insights_dataframe[source_insights_dataframe['ddl_operation'] == 'CREATE TABLE']
+    tables = df[df['sql_operation'] == 'CREATE TABLE']
     return tables['db_object_name'].to_list()
 
 
 
 def group_tables_by_dml_operation(array_of_table_names_and_dml_operations):
     """
-    Given an array of dictionaries, group the dictionaries by the ddl_operation key
-    and return a dictionary with the ddl_operation as the key and the table_name as the value.
+    Given an array of dictionaries, group the dictionaries by the sql_operation key
+    and return a dictionary with the sql_operation as the key and the table_name as the value.
 
     Example:
-    Input: [{'table_name': 'Orders', 'ddl_operation': 'SELECT'}, {'table_name': 'Order Subtotals', 'ddl_operation': 'SELECT'}]
+    Input: [{'table_name': 'Orders', 'sql_operation': 'SELECT'}, {'table_name': 'Order Subtotals', 'sql_operation': 'SELECT'}]
     Output: {'SELECT': 'Orders, Order Subtotals'}
     """
     dict_by_operation = {}
 
     # Iterate over the array
     for item in array_of_table_names_and_dml_operations:
-        # If the ddl_operation is not in the dictionary, add it with the table_name as the value
-        if item['ddl_operation'] not in dict_by_operation:
-            dict_by_operation[item['ddl_operation']] = item['table_name']
-        # If the ddl_operation is already in the dictionary, append the table_name to the existing value
+        # If the sql_operation is not in the dictionary, add it with the table_name as the value
+        if item['sql_operation'] not in dict_by_operation:
+            dict_by_operation[item['sql_operation']] = item['table_name']
+        # If the sql_operation is already in the dictionary, append the table_name to the existing value
         else:
-            dict_by_operation[item['ddl_operation']] += ', ' + item['table_name']
+            dict_by_operation[item['sql_operation']] += ', ' + item['table_name']
     return dict_by_operation
 
 
