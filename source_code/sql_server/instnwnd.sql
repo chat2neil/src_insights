@@ -745,3 +745,230 @@ ALTER TABLE EmployeeTerritories
 		[TerritoryID]
 	)
 GO
+
+
+CREATE PROCEDURE InsertProduct
+    @ProductName nvarchar(40),
+    @SupplierID int,
+    @CategoryID int,
+    @QuantityPerUnit nvarchar(20),
+    @UnitPrice money,
+    @UnitsInStock smallint,
+    @UnitsOnOrder smallint,
+    @ReorderLevel smallint,
+    @Discontinued bit
+AS
+BEGIN
+    INSERT INTO Products (
+        ProductName,
+        SupplierID,
+        CategoryID,
+        QuantityPerUnit,
+        UnitPrice,
+        UnitsInStock,
+        UnitsOnOrder,
+        ReorderLevel,
+        Discontinued
+    )
+    VALUES (
+        @ProductName,
+        @SupplierID,
+        @CategoryID,
+        @QuantityPerUnit,
+        @UnitPrice,
+        @UnitsInStock,
+        @UnitsOnOrder,
+        @ReorderLevel,
+        @Discontinued
+    )
+END
+GO
+
+
+CREATE PROCEDURE UpdateProduct
+    @ProductID int,
+    @ProductName nvarchar(40),
+    @SupplierID int,
+    @CategoryID int,
+    @QuantityPerUnit nvarchar(20),
+    @UnitPrice money,
+    @UnitsInStock smallint,
+    @UnitsOnOrder smallint,
+    @ReorderLevel smallint,
+    @Discontinued bit
+AS
+BEGIN
+    UPDATE Products
+    SET ProductName = @ProductName,
+        SupplierID = @SupplierID,
+        CategoryID = @CategoryID,
+        QuantityPerUnit = @QuantityPerUnit,
+        UnitPrice = @UnitPrice,
+        UnitsInStock = @UnitsInStock,
+        UnitsOnOrder = @UnitsOnOrder,
+        ReorderLevel = @ReorderLevel,
+        Discontinued = @Discontinued
+    WHERE ProductID = @ProductID
+END
+GO
+
+
+CREATE PROCEDURE DeleteProduct
+    @ProductID int
+AS
+BEGIN
+    DELETE FROM Products
+    WHERE ProductID = @ProductID
+END
+GO
+
+CREATE PROCEDURE InsertOrder
+    @CustomerID nchar(5),
+    @EmployeeID int,
+    @OrderDate datetime,
+    @RequiredDate datetime,
+    @ShippedDate datetime,
+    @ShipVia int,
+    @Freight money,
+    @ShipName nvarchar(40),
+    @ShipAddress nvarchar(60),
+    @ShipCity nvarchar(15),
+    @ShipRegion nvarchar(15),
+    @ShipPostalCode nvarchar(10),
+    @ShipCountry nvarchar(15)
+AS
+BEGIN
+    INSERT INTO Orders (
+        CustomerID,
+        EmployeeID,
+        OrderDate,
+        RequiredDate,
+        ShippedDate,
+        ShipVia,
+        Freight,
+        ShipName,
+        ShipAddress,
+        ShipCity,
+        ShipRegion,
+        ShipPostalCode,
+        ShipCountry
+    )
+    VALUES (
+        @CustomerID,
+        @EmployeeID,
+        @OrderDate,
+        @RequiredDate,
+        @ShippedDate,
+        @ShipVia,
+        @Freight,
+        @ShipName,
+        @ShipAddress,
+        @ShipCity,
+        @ShipRegion,
+        @ShipPostalCode,
+        @ShipCountry
+    )
+END
+GO
+
+
+CREATE PROCEDURE UpdateOrder
+    @OrderID int,
+    @CustomerID nchar(5),
+    @EmployeeID int,
+    @OrderDate datetime,
+    @RequiredDate datetime,
+    @ShippedDate datetime,
+    @ShipVia int,
+    @Freight money,
+    @ShipName nvarchar(40),
+    @ShipAddress nvarchar(60),
+    @ShipCity nvarchar(15),
+    @ShipRegion nvarchar(15),
+    @ShipPostalCode nvarchar(10),
+    @ShipCountry nvarchar(15)
+AS
+BEGIN
+    UPDATE Orders
+    SET CustomerID = @CustomerID,
+        EmployeeID = @EmployeeID,
+        OrderDate = @OrderDate,
+        RequiredDate = @RequiredDate,
+        ShippedDate = @ShippedDate,
+        ShipVia = @ShipVia,
+        Freight = @Freight,
+        ShipName = @ShipName,
+        ShipAddress = @ShipAddress,
+        ShipCity = @ShipCity,
+        ShipRegion = @ShipRegion,
+        ShipPostalCode = @ShipPostalCode,
+        ShipCountry = @ShipCountry
+    WHERE OrderID = @OrderID
+END
+GO
+
+CREATE PROCEDURE DeleteOrder
+    @OrderID int
+AS
+BEGIN
+    DELETE FROM Orders
+    WHERE OrderID = @OrderID
+END
+GO
+
+CREATE PROCEDURE InsertOrderDetails
+    @OrderID int,
+    @ProductID int,
+    @UnitPrice money,
+    @Quantity smallint,
+    @Discount real
+AS
+BEGIN
+    INSERT INTO [Order Details] (OrderID, ProductID, UnitPrice, Quantity, Discount)
+    VALUES (@OrderID, @ProductID, @UnitPrice, @Quantity, @Discount)
+END
+GO
+
+CREATE PROCEDURE UpdateOrderDetails
+    @OrderID int,
+    @ProductID int,
+    @UnitPrice money,
+    @Quantity smallint,
+    @Discount real
+AS
+BEGIN
+    UPDATE [Order Details]
+    SET UnitPrice = @UnitPrice,
+        Quantity = @Quantity,
+        Discount = @Discount
+    WHERE OrderID = @OrderID AND ProductID = @ProductID
+END
+GO
+
+CREATE PROCEDURE DeleteOrderDetails
+    @OrderID int,
+    @ProductID int
+AS
+BEGIN
+    DELETE FROM [Order Details]
+    WHERE OrderID = @OrderID AND ProductID = @ProductID
+END
+GO
+
+
+CREATE PROCEDURE ExecuteInsertProduct
+AS
+BEGIN
+    -- Call the InsertProduct stored procedure with specific parameter values
+    EXEC InsertProduct
+        @ProductName = 'New Product',
+        @SupplierID = 1,
+        @CategoryID = 2,
+        @QuantityPerUnit = '12 boxes per case',
+        @UnitPrice = 10.99,
+        @UnitsInStock = 50,
+        @UnitsOnOrder = 20,
+        @ReorderLevel = 10,
+        @Discontinued = 0
+END
+GO

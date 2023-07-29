@@ -16,6 +16,8 @@ openai = "*"
 tiktoken = "*"
 numpy = "*"
 pandas = "*"
+scikit-learn = "*"
+jinja2 = "*"
 
 [dev-packages]
 
