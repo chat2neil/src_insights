@@ -11,23 +11,26 @@ import pandas as pd
 import json
 import re
 import json
+import os
 
 class SqlCodeParser:
     """
     This class contains the functions for parsing SQL code.
     """
 
-    def __init__(self, source_directory, source_file_glob_pattern="**/*.sql", chunk_limit=0, verbose=True):
+    CACHE_FILE_NAME = './results/parsed_code_cache.csv'
+
+    def __init__(self, source_directory, source_file_glob_pattern="**/*.sql", use_cache=True, debug=True):
         """
         Initialise the class with the source directory and the glob pattern for the SQL files to parse.
         """
         self.source_directory = source_directory
         self.source_file_glob_pattern = source_file_glob_pattern
-        self.chunk_limit = chunk_limit
-        self.verbose = verbose
+        self.use_cache = use_cache
+        self.debug = debug
 
 
-    def _parse_code_for_ddl_statements(self, sql_code):
+    def _find_ddl_statements_in_code_segment(self, sql_code):
         """
         Find all the Data Definition Language (DDL) statements in the SQL CODE fragment
         provided and extract the statement type and the name of the database object 
@@ -94,11 +97,16 @@ class SqlCodeParser:
 
         # get a chat completion from the formatted messages
         llm_response = chat(chat_prompt.format_prompt(sql_code_fragment=sql_code).to_messages())
-        result = json.loads(llm_response.content)
+        try:
+            result = json.loads(llm_response.content)
+        except:
+            print(f"\nFailed to parse the following response into JSON:\n{llm_response.content}\n\nThis content will be excluded.\n\nThe input SQL code was:\n{sql_code}\n\n")
+            result = []
+
         return result
 
 
-    def find_ddl_statements(self):
+    def _search_all_sql_files_for_ddl_statements(self):
         """
         Reads the SQL code from the files in the source directory and parse the code to 
         extract the Data Definition Language (DDL) statements.
@@ -126,9 +134,12 @@ class SqlCodeParser:
         - DROP CONSTRAINT
         """
 
+        if not os.path.exists(self.source_directory):
+            raise Exception(f"Source directory does not exist: {self.source_directory}")
+
         # Load the code to analyse
         loader = DirectoryLoader(
-            self.source_directory, glob=self.source_file_glob_pattern, loader_cls=TextLoader, show_progress=self.verbose
+            self.source_directory, glob=self.source_file_glob_pattern, loader_cls=TextLoader, show_progress=True
         )
         documents = loader.load()
 
@@ -137,18 +148,42 @@ class SqlCodeParser:
             separators=["GO\n", "go\n", "\n\n", "\n"], chunk_size=2000, chunk_overlap=0, keep_separator=True
         )
         chunks = splitter.split_documents(documents)
-        sample_chunks = chunks[0: self.chunk_limit] if self.chunk_limit > 0 else chunks
 
-        ddl_statements_dataframe = pd.DataFrame(columns=['db_object_name', 'sql_operation', 'sql_code'])
+        # In debug mode we only process a few chunks to save time and cost.
+        sample_chunks = chunks[0:3] if self.debug else chunks
+
+        print(f"Parsing {len(sample_chunks)} code fragments.")
+        ddl_statements_df = pd.DataFrame(columns=['db_object_name', 'sql_operation', 'sql_code'])
         for chunk in sample_chunks:
+            print(".", end="") # progress indicator
             content = chunk.page_content
-            database_objects = self._parse_code_for_ddl_statements(content)
-            temp_df = pd.DataFrame(database_objects)
-            temp_df['sql_code'] = content
-            ddl_statements_dataframe = pd.concat([ddl_statements_dataframe, temp_df], ignore_index=True)
+            database_objects = self._find_ddl_statements_in_code_segment(content)
+            if len(database_objects) > 0:
+                temp_df = pd.DataFrame(database_objects)
+                temp_df['sql_code'] = content
+                ddl_statements_df = pd.concat([ddl_statements_df, temp_df], ignore_index=True)
 
-        return ddl_statements_dataframe
+        return ddl_statements_df
 
+
+    def find_ddl_statements(self):
+        """
+        Finds all DDL statements in the SQL code in the source directory.
+        Uses cached results if they exist and the use_cache parameter is set to True.
+        
+        The output is a dataframe with the following columns:
+        - db_object_name: The name of the database object being created, altered or dropped.
+        - sql_operation: The type of DDL statement.
+        - sql_code: The SQL code that was parsed.
+        """
+        if self.use_cache and os.path.exists(SqlCodeParser.CACHE_FILE_NAME):
+            df = pd.read_csv(SqlCodeParser.CACHE_FILE_NAME)
+        else:
+            df = self._search_all_sql_files_for_ddl_statements()
+            df.to_csv(SqlCodeParser.CACHE_FILE_NAME, index=False)
+        
+        return df
+            
 
     def _extract_procedure_declaration_from_code(self, procedure_name, sql_code):
         """

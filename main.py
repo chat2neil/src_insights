@@ -198,40 +198,31 @@ def create_service_diagrams(df):
 # Parse the command line arguments
 parser = argparse.ArgumentParser(description='Source insigts for SQL code')
 parser.add_argument('--debug',
-                    type=bool,
-                    default=False,
+                    action='store_true',
                     help='set to true to run in debug mode, which will only process a small number of files')
 
-parser.add_argument('--parse-code',
-                    type=bool,
-                    default=False,
-                    help='set to true to parse the original SQL code, if false, then use the results from the previous run are used')
+parser.add_argument('--no-cache',
+                    action='store_true',
+                    help='if true, then a cache of previously parsed files will be used; the cache is in CSV format')
 args = parser.parse_args()
 
-if args.debug:
-    print("Running in debug mode")
-    chunk_limit = 3
-else:
-    chunk_limit = 0
+print("Running in debug mode") if args.debug else print("Running in production mode")
+print("Not using cached results") if args.no_cache else print("Using cached results if they exist")
 
-if args.parse_code:
-    print("Parsing SQL code")
-
-    sql_parser = SqlCodeParser(
+sql_parser = SqlCodeParser(
         source_directory="source_code/sql_server", 
         source_file_glob_pattern="**/*.sql",
-        chunk_limit=chunk_limit,
-        verbose=True)
-    df = sql_parser.find_ddl_statements()
-    df.to_csv('./results/parsed_code.csv', index=False)
-else:
-    print("Using parsed results from previous run")
+        debug=args.debug,
+        use_cache=(not args.no_cache))
 
-    df = pd.read_csv('./results/parsed_code.csv')
-
+# Parse the SQL code and find the DDL statements
+# This returns cached results if the cache exists
+# The results are in a Pandas DataFrame with the following columns:
+# db_object_name, sql_operation, sql_code
+df = sql_parser.find_ddl_statements()
 
 procedure_names = list_procedure_names(df)
-print("Found procedures:")
+print("\n\nFound procedures:")
 print(procedure_names)
 
 table_names = list_table_names(df)

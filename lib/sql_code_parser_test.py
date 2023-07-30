@@ -4,13 +4,13 @@ import pandas as pd
 import re
 
 @pytest.fixture(scope="module")
-def sql_code_parser():
+def uncached_sql_code_parser():
     # Setup logic
     instance = SqlCodeParser(
         source_directory="source_code/sql_server",
         source_file_glob_pattern="**/*.sql",
-        chunk_limit=2,
-        verbose=True,
+        use_cache=False,
+        debug=True
     )
 
     # Your test will run here
@@ -19,13 +19,13 @@ def sql_code_parser():
     # Teardown logic
 
 
-def test_find_ddl_statements(sql_code_parser):
-    df = sql_code_parser.find_ddl_statements()
+def test_find_ddl_statements(uncached_sql_code_parser):
+    df = uncached_sql_code_parser.find_ddl_statements()
     assert df.columns.tolist() == ["db_object_name", "sql_operation", "sql_code"]
     assert len(df) >= 2
 
 
-def test_extract_procedure_declaration_from_code(sql_code_parser):
+def test_extract_procedure_declaration_from_code(uncached_sql_code_parser):
     code = """
 
 GO
@@ -94,25 +94,25 @@ ORDER BY ProductName
 
     """
 
-    segment = sql_code_parser._extract_procedure_declaration_from_code("CustOrdersDetail", code)
+    segment = uncached_sql_code_parser._extract_procedure_declaration_from_code("CustOrdersDetail", code)
     print(f"Segment:\n{segment}")
     assert segment.startswith("CREATE PROCEDURE CustOrdersDetail")
     assert len(re.findall(r'^GO$', segment, re.MULTILINE | re.IGNORECASE)) == 1, "There should be only one GO statement in the extracted segment"
 
-    segment = sql_code_parser._extract_procedure_declaration_from_code("CustOrderHist", code)
+    segment = uncached_sql_code_parser._extract_procedure_declaration_from_code("CustOrderHist", code)
     print(f"Segment:\n{segment}")
     assert segment.startswith("CREATE PROCEDURE CustOrderHist @CustomerID nchar(5)")
     assert len(re.findall(r'^GO$', segment, re.MULTILINE | re.IGNORECASE)) == 1, "There should be only one GO statement in the extracted segment"
 
     # This one tests situations where there are no more GO statements in the file, the last procedure
-    segment = sql_code_parser._extract_procedure_declaration_from_code("SalesByCategory", code)
+    segment = uncached_sql_code_parser._extract_procedure_declaration_from_code("SalesByCategory", code)
     print(f"Segment:\n{segment}")
     assert segment.startswith("CREATE PROCEDURE SalesByCategory")
     assert "ORDER BY ProductName" in segment, "The last part of the stored procedure was found"
     assert len(re.findall(r'^GO$', segment, re.MULTILINE | re.IGNORECASE)) == 0, "There should be no GO statement in the extracted segment, for this example"
 
 
-def test_find_tables_manipulated_by_procedure(sql_code_parser):
+def test_find_tables_manipulated_by_procedure(uncached_sql_code_parser):
     procedure_name = 'SalesByCategory'
     code = """
 CREATE PROCEDURE SalesByCategory
@@ -135,5 +135,5 @@ GROUP BY ProductName
 ORDER BY ProductName
 
 """
-    tables = sql_code_parser.find_tables_manipulated_by_procedure(procedure_name, code)
+    tables = uncached_sql_code_parser.find_tables_manipulated_by_procedure(procedure_name, code)
     assert tables == [{'table_name': 'Order Details', 'sql_operation': 'SELECT'}, {'table_name': 'Orders', 'sql_operation': 'SELECT'}, {'table_name': 'Products', 'sql_operation': 'SELECT'}, {'table_name': 'Categories', 'sql_operation': 'SELECT'}]

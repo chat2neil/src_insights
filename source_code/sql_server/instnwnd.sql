@@ -956,19 +956,20 @@ END
 GO
 
 
-CREATE PROCEDURE ExecuteInsertProduct
-AS
-BEGIN
-    -- Call the InsertProduct stored procedure with specific parameter values
-    EXEC InsertProduct
-        @ProductName = 'New Product',
-        @SupplierID = 1,
-        @CategoryID = 2,
-        @QuantityPerUnit = '12 boxes per case',
-        @UnitPrice = 10.99,
-        @UnitsInStock = 50,
-        @UnitsOnOrder = 20,
-        @ReorderLevel = 10,
-        @Discontinued = 0
-END
-GO
+-- CREATE PROCEDURE ExecuteInsertProduct
+-- AS
+-- BEGIN
+--     -- Call the InsertProduct stored procedure with specific parameter values
+--     EXEC InsertProduct
+--         @ProductName = 'New Product',
+--         @SupplierID = 1,
+--         @CategoryID = 2,
+--         @QuantityPerUnit = '12 boxes per case',
+--         @UnitPrice = 10.99,
+--         @UnitsInStock = 50,
+--         @UnitsOnOrder = 20,
+--         @ReorderLevel = 10,
+--         @Discontinued = 0
+-- END
+-- GO
+
