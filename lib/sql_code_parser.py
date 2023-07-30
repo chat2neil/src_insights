@@ -185,7 +185,7 @@ class SqlCodeParser:
         return df
             
 
-    def _extract_procedure_declaration_from_code(self, procedure_name, sql_code):
+    def extract_procedure_declaration_from_code(self, procedure_name, sql_code):
         """
         Extract the procedure declaration from the SQL code.
         

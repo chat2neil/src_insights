@@ -94,18 +94,18 @@ ORDER BY ProductName
 
     """
 
-    segment = uncached_sql_code_parser._extract_procedure_declaration_from_code("CustOrdersDetail", code)
+    segment = uncached_sql_code_parser.extract_procedure_declaration_from_code("CustOrdersDetail", code)
     print(f"Segment:\n{segment}")
     assert segment.startswith("CREATE PROCEDURE CustOrdersDetail")
     assert len(re.findall(r'^GO$', segment, re.MULTILINE | re.IGNORECASE)) == 1, "There should be only one GO statement in the extracted segment"
 
-    segment = uncached_sql_code_parser._extract_procedure_declaration_from_code("CustOrderHist", code)
+    segment = uncached_sql_code_parser.extract_procedure_declaration_from_code("CustOrderHist", code)
     print(f"Segment:\n{segment}")
     assert segment.startswith("CREATE PROCEDURE CustOrderHist @CustomerID nchar(5)")
     assert len(re.findall(r'^GO$', segment, re.MULTILINE | re.IGNORECASE)) == 1, "There should be only one GO statement in the extracted segment"
 
     # This one tests situations where there are no more GO statements in the file, the last procedure
-    segment = uncached_sql_code_parser._extract_procedure_declaration_from_code("SalesByCategory", code)
+    segment = uncached_sql_code_parser.extract_procedure_declaration_from_code("SalesByCategory", code)
     print(f"Segment:\n{segment}")
     assert segment.startswith("CREATE PROCEDURE SalesByCategory")
     assert "ORDER BY ProductName" in segment, "The last part of the stored procedure was found"
