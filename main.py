@@ -6,25 +6,9 @@ from sklearn.cluster import KMeans
 from jinja2 import Template
 import subprocess
 from lib.sql_code_parser import SqlCodeParser
+from lib.stored_procedure_to_table_mapper import StoredProcedureToTableMapper
 
 load_dotenv()
-
-
-def list_procedure_names(df):
-    """
-    Find all the procedure names in the source insights data frame.
-    """
-    procedures = df[df['sql_operation'] == 'CREATE PROCEDURE']
-    return procedures['db_object_name'].to_list()
-
-
-def list_table_names(df):
-    """
-    Find all the table names in the source insights data frame.
-    """
-    tables = df[df['sql_operation'] == 'CREATE TABLE']
-    return tables['db_object_name'].to_list()
-
 
 
 def group_tables_by_dml_operation(array_of_table_names_and_dml_operations):
@@ -205,6 +189,7 @@ parser.add_argument('--no-cache',
                     action='store_true',
                     help='if true, then a cache of previously parsed files will be used; the cache is in CSV format')
 args = parser.parse_args()
+use_cache = not args.no_cache
 
 print("Running in debug mode") if args.debug else print("Running in production mode")
 print("Not using cached results") if args.no_cache else print("Using cached results if they exist")
@@ -213,20 +198,24 @@ sql_parser = SqlCodeParser(
         source_directory="source_code/sql_server", 
         source_file_glob_pattern="**/*.sql",
         debug=args.debug,
-        use_cache=(not args.no_cache))
+        use_cache=use_cache)
 
 # Parse the SQL code and find the DDL statements
 # This returns cached results if the cache exists
 # The results are in a Pandas DataFrame with the following columns:
 # db_object_name, sql_operation, sql_code
-df = sql_parser.find_ddl_statements()
+ddl_statements_df = sql_parser.find_ddl_statements()
 
-procedure_names = list_procedure_names(df)
+procedure_names = ddl_statements_df[ddl_statements_df['sql_operation'] == 'CREATE PROCEDURE']['db_object_name'].tolist()
 print("\n\nFound procedures:")
 print(procedure_names)
 
-table_names = list_table_names(df)
+table_names = ddl_statements_df[ddl_statements_df['sql_operation'] == 'CREATE TABLE']['db_object_name'].tolist()
 print("Found tables:")
 print(table_names)
+
+sp_to_table_mapper = StoredProcedureToTableMapper(sql_parser, use_cache=use_cache)
+tables_df = sp_to_table_mapper.map_procedures_to_tables(ddl_statements_df)
+print(tables_df.head())
 
 print("Done.")
