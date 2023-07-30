@@ -5,6 +5,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from jinja2 import Template
 import subprocess
+from lib.service_extractor import ServiceExtractor
 from lib.sql_code_parser import SqlCodeParser
 from lib.stored_procedure_to_table_mapper import StoredProcedureToTableMapper
 
@@ -216,6 +217,13 @@ print(table_names)
 
 sp_to_table_mapper = StoredProcedureToTableMapper(sql_parser, use_cache=use_cache)
 tables_df = sp_to_table_mapper.map_procedures_to_tables(ddl_statements_df)
+print("\n\nMapped procedures to tables:")
 print(tables_df.head())
+
+service_extractor = ServiceExtractor(tables_df, use_cache=use_cache)
+service_definitions = service_extractor.extract()
+print("\n\nFound services:")
+for service_definition in service_definitions:
+    print(service_definition)
 
 print("Done.")
