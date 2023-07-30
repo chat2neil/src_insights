@@ -76,6 +76,8 @@ Lessons learned:
     result = json.loads(llm_response.content)
     ```
 
+8. The cost to run the code repeatedly during development was typically a few cents per day.
+
 # Next steps
 
 To create a production ready solution, the following steps are needed:
@@ -93,7 +95,7 @@ Steps to get started:
 1. Clone the repo
 2. Open a terminal in the source directory
 3. Call `pipenv install` from the terminal
-4. [Install PlantUML dependencies](https://plantuml.com/starting) manually - graphviz, Java and PlantUML
+4. [Install PlantUML dependencies manually](https://plantuml.com/starting) - graphviz, Java and PlantUML
 5. Create a .env file and store your OPENAI_API_KEY in it
 6. Call `pipenv run python main.py`
     * Specify `--debug true` to parse a subset of the SQL code.
