@@ -40,7 +40,7 @@ Lessons learned:
 3. Once all the code was classified into DML statements, the stored procedures were extracted and the GPT model was used again to extract the tables that are queried by each procedure.
 4. The GPT model wasn't very good at identifying which tables fell within a procedure, so a regex was used to ensure that the code fed into the model only included code for a particular procedure.
 5. Results were good with a GPT-3.5-turbo model and temperature of 0.
-6. Few shot prompting was used to ensure that the LLM had examples of what was expected.
+6. [Few shot prompting](https://www.promptingguide.ai/techniques/fewshot) was used to ensure that the LLM had examples of what was expected.
     Here's an example
 
     ```text
