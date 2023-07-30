@@ -24,62 +24,68 @@ And another one:
 
 # Findings
 
-The project can successfully find all the stored procedures and the tables that are queried using a GPT-3.5-tubo model.  It uses [scikit-learn](https://scikit-learn.org/stable/) to clusters the procs into
-sensible groups using KMeans squared clustering, based on the names of the procs, tables and the operations performed.
+The project can successfully find all the stored procedures and the tables that are queried using a GPT-3.5-tubo model.
 
-The clustering works pretty well and could be easily tuned to desired output.  The interim results are cached in a file called `results/service_candidates_cache.csv` which can be manually tweaked after
-initial clustering to get the desired final output.
+It uses [scikit-learn](https://scikit-learn.org/stable/) to clusters the procs into sensible groups using KMeans squared clustering, 
+based on the names of the procs, tables and the operations performed.  The clustering works pretty well and could be easily tuned 
+to desired output.  The interim results are cached in a file called `results/service_candidates_cache.csv` which can be manually 
+tweaked after initial clustering to get the desired final output.
 
 [PlantUml](https://plantuml.com/) is used to generate the diagrams.
 
-Lessons learned include:
+Lessons learned:
 
-1. You can successfully extract information about key source code with quite simple python programs.  Significantly less complex than language parsing.
-2. Short time to implement.  Most of the time was spent learning about AI ;-)
-3. Inconsistent results:
-    * Not finding ALL source code elements and sometimes see differences between program executions.
-    * Variability not improved when "temperature" is set to zero.
-    * Sometimes the results aren't formatted correctly either; although these issues could be easily fixed with standard coding techniques, or a second pass through with LLM.
-    * The area that was least successful was in extracting all the tables and when trying to find relationships between them by searching for foreign key relationships.
-4. You can tune the process to get better results:
-    * __LLM Model choice (and token limit)__ - e.g. GPT3 vs 3.5 or 4.  Wasn't able to try GPT-4 yet.
-    * __Model "temperature"__ - set to 0 for less randomness in the response.
-    * __Input prompts__ - the questions sent to the LLM, e.g.
-        * Few shot prompting, i.e. give examples of what you are expecting
-        * Being explicit about what the LLM should and shouldn't know e.g. "As a SQL programmer...", this effectively positions your query in the right area of the neural network to get the best results.
-        * Asking for multiple completions `-n 3` and comparing or combining the results.
-    * __Retrieval Augmented Generation (RAG)__ - Call the LLM multiple times, priming it with content to get better summarisation across the code base.
+1. GPT models have a [token limit](https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them), so you need a way to feed information into the model that suits your use case.
+2. For this use case a the GPT model was used to parse all the code and identify all the DML statements within it.  The results were stored in a pandas dataframe so that the information could be retrieved easily.  It then became very easy to find every CREATE PROCEDURE statement, for example.
+3. Once all the code was classified into DML statements, the stored procedures were extracted and the GPT model was used again to extract the tables that are queried by each procedure.
+4. The GPT model wasn't very good at identifying which tables fell within a procedure, so a regex was used to ensure that the code fed into the model only included code for a particular procedure.
+5. Results were good with a GPT-3.5-turbo model and temperature of 0.
+6. Few shot prompting was used to ensure that the LLM had examples of what was expected.
+    Here's an example
 
-### What is Retrieval Augmented Generation (RAG)?
+    ```text
+    Example:
+    CREATE TABLE "Products"
+    Output:
+    { "db_object_name": "Products", "sql_operation": "CREATE TABLE"}
 
-![](images/Overview_retrieval_augmented_generation.png)
+    Example:
+    create procedure "Sales by Year"
+    Output:
+    { "db_object_name": "Sales by Year", "sql_operation": "CREATE PROCEDURE"}
+    ```
 
-Credit: [AWS Sagemaker documentation](https://docs.aws.amazon.com/sagemaker/latest/dg/jumpstart-foundation-models-customize-rag.html)
+7. By specifying the output as a JSON array it was easy to consume the results in python.
+    
+    Here's the prompt:
 
-### Key recommendations from Open AI about how to get the most out of GPT
+    ```text
+    ## OUTPUT FORMAT ##
+    json object array, containing the name of the database object and the DDL statement type in UPPERCASE text.
+    Example:
+    [{ "db_object_name": "EmployeeID", "sql_operation": "CREATE INDEX"}]
+    ```
 
-![](images/AI_recommendations.png)
+    And the python code:
 
-Credit: [Microsoft Build Presentation by Andrej Karpathy](https://www.youtube.com/watch?v=bZQun8Y4L2A)
+    ```python
+    import json
+
+    ...
+
+    result = json.loads(llm_response.content)
+    ```
 
 # Next steps
 
-* Update the readme
-* Point this at Azure Open AI
-* Tweak it to use Informix code
+To create a production ready solution, the following steps are needed:
 
-# Useful references
-
-* [Free Tutorial Series by Samuel Chan](https://www.youtube.com/playlist?list=PLXsFtK46HZxUQERRbOmuGoqbMD-KWLkOS)
-* [Neural Network Overview](https://www.youtube.com/watch?v=aIZtJqtzdQs&list=PLMrJAkhIeNNQV7wi9r7Kut8liLFMWQOXn&index=12) - fantastic entry level information about AI and neural networks by Steve Brunton.
-* [MS Build - State of GPT](https://www.youtube.com/watch?v=bZQun8Y4L2A) - latest techniques for getting the most out of LLMs.
-* [Prompt Engineering Guide](https://www.promptingguide.ai/)
-* [Microsoft Open Source Guidance Framework](https://github.com/microsoft/guidance) - template based prompt engineering framework.
-* [Llama-Index Index Types](https://gpt-index.readthedocs.io/en/latest/guides/primer/index_guide.html)
-* [Next generation AI for developers with the Microsoft Cloud](https://www.youtube.com/watch?v=KMOV1Zy8YeM&list=PLlrxD0HtieHjolPmqWVyk446uLMPWo4oP&index=4&t=2210s) - overview of Azure Open AI
-* [Getting started with generative AI using Azure OpenAI Service](https://www.youtube.com/watch?v=o5uhn4GSpQU&list=PLlrxD0HtieHjolPmqWVyk446uLMPWo4oP&index=123) - more detail on Azure Open AI
-* [The era of the AI Copilot](https://www.youtube.com/watch?v=FyY0fEO5jVY&list=PLlrxD0HtieHjolPmqWVyk446uLMPWo4oP&index=146) - about Microsoft copilots.
-* [Chat with OpenAI CEO and and Co-founder Sam Altman, and Chief Scientist Ilya Sutskever](https://www.youtube.com/watch?v=mC-0XqTAeMQ&t=1s)
+* Remove unused libraries from pipenvfile.
+* Test with Azure Open AI.
+* Test with Informix example.
+* Create 2 pager design for Azure based solution.
+* Perform security threat modelling excercise and gain accreditation.
+* Test and fine tune with production Informix code.
 
 # Running the code
 
@@ -101,3 +107,22 @@ This project uses [pytest](https://docs.pytest.org/), run `pipenv run pytest` at
 
 * 0.0.2 - can read pubs db and extract proc names, but doesn't extract associated tables correctly.  Seems to never finish with nwnd database; haven't investigated the cause yet.
 * 1.0.0 - first fully working version; works with Open AI, not Azure yet.
+
+# Useful resources
+
+* [Free Tutorial Series by Samuel Chan](https://www.youtube.com/playlist?list=PLXsFtK46HZxUQERRbOmuGoqbMD-KWLkOS)
+* [Neural Network Overview](https://www.youtube.com/watch?v=aIZtJqtzdQs&list=PLMrJAkhIeNNQV7wi9r7Kut8liLFMWQOXn&index=12) - fantastic entry level information about AI and neural networks by Steve Brunton.
+* [MS Build - State of GPT](https://www.youtube.com/watch?v=bZQun8Y4L2A) - latest techniques for getting the most out of LLMs.
+* [Prompt Engineering Guide](https://www.promptingguide.ai/)
+* [Microsoft Open Source Guidance Framework](https://github.com/microsoft/guidance) - template based prompt engineering framework.
+* [Llama-Index Index Types](https://gpt-index.readthedocs.io/en/latest/guides/primer/index_guide.html)
+* [Next generation AI for developers with the Microsoft Cloud](https://www.youtube.com/watch?v=KMOV1Zy8YeM&list=PLlrxD0HtieHjolPmqWVyk446uLMPWo4oP&index=4&t=2210s) - overview of Azure Open AI
+* [Getting started with generative AI using Azure OpenAI Service](https://www.youtube.com/watch?v=o5uhn4GSpQU&list=PLlrxD0HtieHjolPmqWVyk446uLMPWo4oP&index=123) - more detail on Azure Open AI
+* [The era of the AI Copilot](https://www.youtube.com/watch?v=FyY0fEO5jVY&list=PLlrxD0HtieHjolPmqWVyk446uLMPWo4oP&index=146) - about Microsoft copilots.
+* [Chat with OpenAI CEO and and Co-founder Sam Altman, and Chief Scientist Ilya Sutskever](https://www.youtube.com/watch?v=mC-0XqTAeMQ&t=1s)
+
+### Key recommendations from Open AI about how to get the most out of GPT
+
+![](images/AI_recommendations.png)
+
+Credit: [Microsoft Build Presentation by Andrej Karpathy](https://www.youtube.com/watch?v=bZQun8Y4L2A)
