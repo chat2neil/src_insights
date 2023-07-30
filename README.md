@@ -35,7 +35,7 @@ tweaked after initial clustering to get the desired final output.
 
 Lessons learned:
 
-1. GPT models have a [token limit](https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them), so you need a way to feed information into the model that suits your use case.
+1. GPT models have a [token limit](https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them), so you need a way to feed information into the model that suits your use case. e.g. summarisation versus search etc.
 2. For this use case a the GPT model was used to parse all the code and identify all the DML statements within it.  The results were stored in a pandas dataframe so that the information could be retrieved easily.  It then became very easy to find every CREATE PROCEDURE statement, for example.
 3. Once all the code was classified into DML statements, the stored procedures were extracted and the GPT model was used again to extract the tables that are queried by each procedure.
 4. The GPT model wasn't very good at identifying which tables fell within a procedure, so a regex was used to ensure that the code fed into the model only included code for a particular procedure.
@@ -46,12 +46,12 @@ Lessons learned:
     ```text
     Example:
     CREATE TABLE "Products"
-    Output:
+    Expected output:
     { "db_object_name": "Products", "sql_operation": "CREATE TABLE"}
 
     Example:
     create procedure "Sales by Year"
-    Output:
+    Expected output:
     { "db_object_name": "Sales by Year", "sql_operation": "CREATE PROCEDURE"}
     ```
 
@@ -80,24 +80,29 @@ Lessons learned:
 
 To create a production ready solution, the following steps are needed:
 
-* Remove unused libraries from pipenvfile.
-* Test with Azure Open AI.
-* Test with Informix example.
-* Create 2 pager design for Azure based solution.
-* Perform security threat modelling excercise and gain accreditation.
-* Test and fine tune with production Informix code.
+* Test with [Azure Open AI](https://learn.microsoft.com/en-us/azure/ai-services/openai/quickstart?tabs=command-line&pivots=programming-language-python).
+* Test with limited Informix code example.
+* Create a short design document outining the solution in Azure.
+* Perform security threat modelling to gain security accreditation.
+* Test and fine tune the solution with production Informix code.
 
 # Running the code
 
-For `main.py`, which is based on langchain:
+Steps to get started:
 
 1. Clone the repo
 2. Open a terminal in the source directory
 3. Call `pipenv install` from the terminal
-3. Create a .env file and store your OPENAI_API_KEY in it
-4. Call `pipenv run python main.py`
-
-For `llama_demo.py` you can run it with `--create-index` command line switch to build a local vector store index from the content, then you can run is without this switch in subsequent runs to reduce time and cost.  You can also switch between northwind and pubs db code using the `--db <name>` switch.  The index is created locally in JSON format under the ./index directory.
+4. [Install PlantUML dependencies](https://plantuml.com/starting) manually - graphviz, Java and PlantUML
+5. Create a .env file and store your OPENAI_API_KEY in it
+6. Call `pipenv run python main.py`
+    * Specify `--debug true` to parse a subset of the SQL code.
+    * Specify `--no-cache true` to bypass caching behavior and regenerate everything from scratch.
+7. The solution caches data from the following intermediate steps:
+    * DML statements
+    * Stored proc to table mapping
+    * Service candidates
+8. With caching on you can manually tweak `service_candidates_cache.csv` to re-group the services how you like.
 
 # Testing
 
