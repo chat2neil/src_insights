@@ -20,7 +20,7 @@ class SqlCodeParser:
 
     CACHE_FILE_NAME = './results/parsed_code_cache.csv'
 
-    def __init__(self, source_directory, source_file_glob_pattern="**/*.sql", use_cache=True, debug=True):
+    def __init__(self, source_directory, source_file_glob_pattern="**/*.sql", use_cache=True, debug=True, cache_file_name=CACHE_FILE_NAME):
         """
         Initialise the class with the source directory and the glob pattern for the SQL files to parse.
         """
@@ -28,6 +28,7 @@ class SqlCodeParser:
         self.source_file_glob_pattern = source_file_glob_pattern
         self.use_cache = use_cache
         self.debug = debug
+        self.cache_file_name = cache_file_name
 
 
     def _find_ddl_statements_in_code_segment(self, sql_code):
@@ -176,11 +177,11 @@ class SqlCodeParser:
         - sql_operation: The type of DDL statement.
         - sql_code: The SQL code that was parsed.
         """
-        if self.use_cache and os.path.exists(SqlCodeParser.CACHE_FILE_NAME):
-            df = pd.read_csv(SqlCodeParser.CACHE_FILE_NAME)
+        if self.use_cache and os.path.exists(self.cache_file_name):
+            df = pd.read_csv(self.cache_file_name)
         else:
             df = self._search_all_sql_files_for_ddl_statements()
-            df.to_csv(SqlCodeParser.CACHE_FILE_NAME, index=False)
+            df.to_csv(self.cache_file_name, index=False)
         
         return df
             

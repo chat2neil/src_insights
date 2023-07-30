@@ -10,7 +10,8 @@ def uncached_sql_code_parser():
         source_directory="source_code/sql_server",
         source_file_glob_pattern="**/*.sql",
         use_cache=False,
-        debug=True
+        debug=True,
+        cache_file_name="./results/sql_code_parser_tests_cache.csv",
     )
 
     # Your test will run here
