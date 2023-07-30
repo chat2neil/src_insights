@@ -3,7 +3,7 @@
 # Intro
 
 This project uses [langchain](https://python.langchain.com/) on Open AI's GPT models to parse SQL code and create diagrams of candidate service definitions that
-could be written to sit over the top of the database layer.  The idea is to facilitate the use of the strangler pattern to write
+could be written to sit over the top of the database layer.  The idea is to facilitate the use of the [strangler pattern](https://martinfowler.com/bliki/StranglerFigApplication.html) to write
 a layer of services over the database procedures, then to start extracting the procedure logic into the service layer.
 
 The program achieves this by:
