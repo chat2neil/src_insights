@@ -2,23 +2,37 @@
 
 # Intro
 
-The repo contains a bunch of generative AI demos; inspired by various tutorials found online.
+This project uses [langchain](https://python.langchain.com/) on Open AI's GPT models to parse SQL code and create diagrams of candidate service definitions that
+could be written to sit over the top of the database layer.  The idea is to facilitate the use of the strangler pattern to write
+a layer of services over the database procedures, then to start extracting the procedure logic into the service layer.
 
-One of the main focus areas was to find out whether a GPT model could be used to read complex SQL code and
-create useful information about the code artefacts (procs, tables, fk relationships) and the dependencies 
-between them.  The intention was to see if AI can provide a simpler approach than traditional language parsing methods.
+The program achieves this by:
 
-GPT stands for Generative Pre-trained Transformer.  GPT is a type of language model that uses a transformer architecture to generate coherent and contextually relevant text. It is a deep learning model that has been pre-trained on a vast amount of text data and can be fine-tuned for specific downstream natural language processing (NLP) tasks.
+1. Parsing the sql code into a pandas dataframe containing all the DDL definitions.
+2. Iterating over all the stored procedure code and creating a map of tables that are called by each stored procedure.  The map indicates which tables are queried or updated.
+3. Clustering stored procedures together based on their name, the names of the underlying tables and the types of operations performed (READ or WRITE).
+4. Creating service definitions from the clustered procedure map.
+5. Generating diagrams of the services.
 
-The demos make use of a few different API's and frameworks:
+Here's an example of the output:
 
-1. [Open AI SDK](https://platform.openai.com/docs/libraries) - Very easy to learn
-2. [langchain](https://python.langchain.com/) - Popular framework that provides abstractions over the top of a broad range of AI technologies.  Relatively easy to learn with good documentation.
-3. [llama-index](https://gpt-index.readthedocs.io/en/latest/guides/primer/usage_pattern.html) - Another popular framework that really shines when implementing Retrieval Augmented Generation (RAG) style programs.  Supports a range of different content search indices to fit different analysis use cases, such a content summarisation, answering specific questions etc.  A bit harder to learn, mainly because the documentation is harder to consume.
+![](images/Orders.png)
+
+And another one:
+
+![](images/Order_Details.png)
 
 # Findings
 
-Key findings so far:
+The project can successfully find all the stored procedures and the tables that are queried using a GPT-3.5-tubo model.  It uses [scikit-learn](https://scikit-learn.org/stable/) to clusters the procs into
+sensible groups using KMeans squared clustering, based on the names of the procs, tables and the operations performed.
+
+The clustering works pretty well and could be easily tuned to desired output.  The interim results are cached in a file called `results/service_candidates_cache.csv` which can be manually tweaked after
+initial clustering to get the desired final output.
+
+[PlantUml](https://plantuml.com/) is used to generate the diagrams.
+
+Lessons learned include:
 
 1. You can successfully extract information about key source code with quite simple python programs.  Significantly less complex than language parsing.
 2. Short time to implement.  Most of the time was spent learning about AI ;-)
@@ -50,10 +64,9 @@ Credit: [Microsoft Build Presentation by Andrej Karpathy](https://www.youtube.co
 
 # Next steps
 
-* Try GPT-4 model.
-* Continue to tune the prompts, potentially try [Guidance Framework](https://github.com/microsoft/guidance)
-* Explore [llama-index](https://gpt-index.readthedocs.io/en/latest/guides/primer/usage_pattern.html) indices and see how they could summarise the code better.  e.g. list index.
-* This is a fun side project, not work!
+* Update the readme
+* Point this at Azure Open AI
+* Tweak it to use Informix code
 
 # Useful references
 
@@ -87,3 +100,4 @@ This project uses [pytest](https://docs.pytest.org/), run `pipenv run pytest` at
 # Change History
 
 * 0.0.2 - can read pubs db and extract proc names, but doesn't extract associated tables correctly.  Seems to never finish with nwnd database; haven't investigated the cause yet.
+* 1.0.0 - first fully working version; works with Open AI, not Azure yet.
