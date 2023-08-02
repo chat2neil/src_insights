@@ -77,6 +77,7 @@ Lessons learned:
     ```
 
 8. The cost to run the code repeatedly during development was typically a few cents per day.
+9. [LLM development tools such as LangSmith](https://docs.smith.langchain.com/) are emerging too.
 
 # Next steps
 
@@ -109,6 +110,68 @@ Steps to get started:
 # Testing
 
 This project uses [pytest](https://docs.pytest.org/), run `pipenv run pytest` at the project root to test.  It will pick up test files named `test_*.py` or `*_test.py` in sub-directories.
+
+# Steps to set up in Azure
+
+* [Check for service availability in your region](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models#gpt-35-models).  You can also [check the what's new page](https://learn.microsoft.com/en-us/azure/ai-services/openai/whats-new) page.
+* Send a request form to Microsoft, are [limiting access to approved enterprise customers](https://learn.microsoft.com/en-us/legal/cognitive-services/openai/limited-access?context=%2Fazure%2Fcognitive-services%2Fopenai%2Fcontext%2Fcontext) due to high demand.
+* [Creating a resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal) only requires a few details, such as subscription, resource group, region and name.
+* Azure Open AI is essentially a black box SaaS service provided within the customer's tenancy and region.  [Microsoft's security documentation](https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy?context=%2Fazure%2Fai-services%2Fopenai%2Fcontext%2Fcontext) states that customer data isn't shared with other customers, 3rd parties or used to train the models, unless a customer opts to do so.  The customer is referred to [Microsoft's Products and Services Data Protection Adendum](https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy?context=%2Fazure%2Fai-services%2Fopenai%2Fcontext%2Fcontext) for details.
+* [Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=command-line&pivots=programming-language-python) uses the same `openai` pip package as Open AI's serivce.  Calling the library using the `openai` simply requires that you configure the endpoint URL and API key:
+
+    ```python
+    #Note: The openai-python library support for Azure OpenAI is in preview.
+    import os
+    import openai
+    openai.api_type = "azure"
+    openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT") 
+    openai.api_version = "2023-05-15"
+    openai.api_key = os.getenv("AZURE_OPENAI_KEY")
+
+    response = openai.ChatCompletion.create(
+        engine="gpt-35-turbo", # engine = "deployment_name".
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Does Azure OpenAI support customer managed keys?"},
+            {"role": "assistant", "content": "Yes, customer managed keys are supported by Azure OpenAI."},
+            {"role": "user", "content": "Do other Azure AI services support this too?"}
+        ]
+    )
+
+    print(response)
+    print(response['choices'][0]['message']['content'])
+    ```
+
+* Azure Open AI [is also supported by langchain](https://python.langchain.com/docs/integrations/llms/azure_openai_example), it has a depdency on the same `opeanai` pip library and you need to configure and instantiate langchain in a similar way to above:
+
+    Setup environment variables:
+
+    ```python
+    import os
+
+    os.environ["OPENAI_API_TYPE"] = "azure"
+    os.environ["OPENAI_API_BASE"] = "https://<your-endpoint.openai.azure.com/"
+    os.environ["OPENAI_API_KEY"] = "your AzureOpenAI key"
+    os.environ["OPENAI_API_VERSION"] = "2023-05-15"
+    ```
+
+    Instantiate the right LLM model:
+
+    ```python
+    from langchain.llms import AzureOpenAI
+
+    llm = AzureOpenAI(
+        deployment_name="td2",
+        model_name="text-davinci-002",
+    )
+
+    response = llm("Tell me a joke")
+    print(response)
+    ```
+
+* [Azure AD authentication](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/switching-endpoints) is supported.
+
+* The [FAQ](https://learn.microsoft.com/en-us/azure/ai-services/openai/faq#how-do-the-capabilities-of-azure-openai-compare-to-openai-) provides more information about data privacy and compatibility with Open AI's services.
 
 # Change History
 
